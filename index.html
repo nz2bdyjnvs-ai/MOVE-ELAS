@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Move Elas — vans rosas só para mulheres</title>
+<meta name="description" content="Move Elas: transporte por van feito por mulheres, para mulheres. Em breve, acompanhe a van em tempo real.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚐</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{
+  --rosa:#E4237A; --rosa-escuro:#B5125C; --rosa-claro:#FFD6E7; --rosa-fundo:#FFF3F8;
+  --ameixa:#3B0F2B; --sol:#FFB92E; --texto:#3B0F2B; --suave:#7A4A66;
+}
+*{box-sizing:border-box;margin:0}
+html{scroll-behavior:smooth}
+body{font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--texto);background:var(--rosa-fundo);line-height:1.55;font-size:1.0625rem}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--ameixa);outline-offset:3px;border-radius:6px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 1.25rem}
+
+/* aviso demo */
+.demo-bar{background:var(--ameixa);color:#fff;text-align:center;font-size:.9rem;padding:.55rem 1rem}
+.demo-bar b{color:var(--sol)}
+
+header.top{display:flex;align-items:center;justify-content:space-between;padding:1.1rem 0}
+.logo{display:flex;align-items:center;gap:.6rem;font-weight:800;font-size:1.4rem;text-decoration:none;letter-spacing:-.02em}
+.logo svg{width:44px;height:auto}
+nav a{margin-left:1.4rem;text-decoration:none;font-weight:600;color:var(--suave)}
+nav a:hover{color:var(--rosa-escuro)}
+@media(max-width:640px){nav a:not(.btn-nav){display:none}}
+.btn-nav{background:var(--rosa);color:#fff;padding:.55rem 1.1rem;border-radius:999px}
+nav a.btn-nav{color:#fff}
+
+/* hero */
+.hero{display:grid;grid-template-columns:1fr 1.1fr;gap:2.5rem;align-items:center;padding:2rem 0 4rem}
+@media(max-width:860px){.hero{grid-template-columns:1fr;padding-bottom:3rem}}
+h1{font-size:clamp(2.5rem,6.2vw,4.4rem);line-height:1;letter-spacing:-.035em;font-weight:800}
+h1 em{font-style:normal;color:var(--rosa)}
+.lead{margin-top:1.3rem;font-size:1.2rem;color:var(--suave);max-width:34ch}
+.cta{display:flex;flex-wrap:wrap;gap:.8rem;margin-top:1.8rem}
+.btn{display:inline-block;font:inherit;font-weight:700;border:0;cursor:pointer;text-decoration:none;padding:.9rem 1.5rem;border-radius:999px;background:var(--rosa);color:#fff;transition:background .15s,transform .15s}
+.btn:hover{background:var(--rosa-escuro)}
+.btn:active{transform:scale(.97)}
+.btn.sec{background:transparent;color:var(--ameixa);box-shadow:inset 0 0 0 2px var(--ameixa)}
+.btn.sec:hover{background:var(--rosa-claro)}
+
+/* mapa demo */
+.mapa{position:relative;background:var(--rosa-claro);border-radius:28px;overflow:hidden;box-shadow:0 18px 40px -18px rgba(181,18,92,.55)}
+#mapa{width:100%;height:500px;background:var(--rosa-claro)}
+@media(max-width:860px){#mapa{height:440px}}
+.mapa .leaflet-tile-pane{filter:sepia(.35) hue-rotate(295deg) saturate(1.35) brightness(1.03)}
+.mapa .leaflet-control-attribution{font-size:10px}
+.pino{display:grid;place-items:center;width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--ameixa);border:3px solid #fff;box-shadow:0 4px 10px rgba(59,15,43,.4)}
+.pino i{display:block;width:8px;height:8px;border-radius:50%;background:#fff}
+.pino.sol{background:var(--sol)}
+.van-ic{filter:drop-shadow(0 4px 6px rgba(59,15,43,.45))}
+.van-ic .anel{position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:var(--rosa);animation:pulse 1.8s ease-out infinite}
+.selo{z-index:1000;position:absolute;top:14px;left:14px;background:var(--ameixa);color:#fff;font-size:.8rem;font-weight:600;padding:.3rem .75rem;border-radius:999px}
+.painel{z-index:1000;position:absolute;left:14px;right:14px;bottom:14px;background:#fff;border-radius:18px;padding:.85rem 1rem;display:flex;align-items:center;gap:1rem;box-shadow:0 8px 24px -10px rgba(59,15,43,.45)}
+.eta{font-size:2rem;font-weight:800;line-height:1;color:var(--rosa);min-width:3.2ch;text-align:center}
+.eta small{display:block;font-size:.72rem;font-weight:600;color:var(--suave);margin-top:.2rem}
+.painel p{font-size:.92rem;line-height:1.35}
+.painel small.r{display:block;color:var(--suave);font-size:.8rem}
+.painel strong{display:block}
+.painel{flex-direction:column;align-items:stretch;gap:.55rem;padding:.7rem 1rem}
+.lin{display:flex;align-items:center;gap:1rem}
+.lin+.lin{border-top:1px solid var(--rosa-claro);padding-top:.55rem}
+.painel .eta{font-size:1.6rem;min-width:3ch}
+.lin.volta .eta{color:var(--rosa-escuro)}
+.pulse{animation:pulse 1.8s ease-out infinite;transform-origin:center;transform-box:fill-box}
+@keyframes pulse{0%{transform:scale(.6);opacity:.7}100%{transform:scale(2.4);opacity:0}}
+
+/* seções */
+section{padding:4rem 0}
+h2{font-size:clamp(1.8rem,4vw,2.6rem);letter-spacing:-.03em;line-height:1.1;max-width:20ch}
+.sub{margin-top:.8rem;color:var(--suave);max-width:50ch}
+.band{background:var(--ameixa);color:#fff}
+.band .sub{color:#EBC3D9}
+
+.passos{display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;margin-top:2.5rem;counter-reset:p;list-style:none;padding:0}
+@media(max-width:760px){.passos{grid-template-columns:1fr}}
+.passos li{counter-increment:p;border-top:4px solid var(--rosa);padding-top:1rem}
+.passos li::before{content:counter(p);display:inline-grid;place-items:center;width:2.2rem;height:2.2rem;border-radius:50%;background:var(--rosa);color:#fff;font-weight:800;margin-bottom:.6rem}
+.passos h3{font-size:1.25rem;margin-bottom:.3rem}
+.passos p{color:var(--suave)}
+
+.seg{display:grid;grid-template-columns:repeat(2,1fr);gap:1.2rem 3rem;margin-top:2.5rem}
+@media(max-width:700px){.seg{grid-template-columns:1fr}}
+.seg div{display:flex;gap:1rem}
+.seg svg{flex:none;width:30px;height:30px;color:var(--sol);margin-top:.15rem}
+.seg h3{font-size:1.15rem}
+.seg p{color:#EBC3D9;font-size:1rem}
+
+.breve{display:grid;grid-template-columns:1.2fr 1fr;gap:2.5rem;align-items:center}
+@media(max-width:800px){.breve{grid-template-columns:1fr}}
+.lista{list-style:none;padding:0;margin-top:1.2rem}
+.lista li{padding:.55rem 0 .55rem 2rem;position:relative;border-bottom:1px solid var(--rosa-claro)}
+.lista li::before{content:"";position:absolute;left:.3rem;top:1.05rem;width:.8rem;height:.8rem;border-radius:50%;background:var(--sol);box-shadow:0 0 0 4px #FFE9B8}
+.lista li.ok::before{background:var(--rosa);box-shadow:0 0 0 4px var(--rosa-claro)}
+.lista span{color:var(--suave);font-size:.92rem;display:block}
+
+form{background:#fff;border-radius:24px;padding:1.6rem;box-shadow:0 14px 34px -20px rgba(181,18,92,.6)}
+form h3{font-size:1.3rem;margin-bottom:.3rem}
+form p.n{color:var(--suave);font-size:.95rem;margin-bottom:1rem}
+label{display:block;font-weight:600;font-size:.92rem;margin:.8rem 0 .3rem}
+input{width:100%;font:inherit;padding:.75rem .9rem;border:2px solid var(--rosa-claro);border-radius:12px;background:var(--rosa-fundo);color:var(--texto)}
+input:focus{outline:none;border-color:var(--rosa)}
+form .btn{width:100%;margin-top:1.2rem}
+#ok{display:none;margin-top:1rem;padding:.8rem 1rem;background:var(--rosa-claro);border-radius:12px;font-size:.95rem}
+
+footer{padding:2rem 0 3rem;color:var(--suave);font-size:.9rem;text-align:center}
+
+/* totem */
+.totem-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:3rem;align-items:center}
+@media(max-width:860px){.totem-grid{grid-template-columns:1fr}}
+.pontos-tabs{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.4rem;justify-content:center}
+.pontos-tabs button{font:inherit;font-weight:600;font-size:.9rem;cursor:pointer;border:0;border-radius:999px;padding:.5rem 1rem;background:#fff;color:var(--ameixa);box-shadow:inset 0 0 0 2px var(--rosa-claro)}
+.pontos-tabs button[aria-pressed="true"]{background:var(--ameixa);color:#fff;box-shadow:none}
+.totem-wrap{position:relative}
+.totem-wrap .selo{position:static;display:table;margin:0 auto 1rem}
+.totem{width:min(300px,100%);margin:0 auto;background:linear-gradient(180deg,var(--rosa),var(--rosa-escuro));border-radius:26px 26px 10px 10px;padding:14px 14px 0;box-shadow:0 26px 40px -22px rgba(181,18,92,.8);color:#fff;position:relative}
+.totem::after{content:"";display:block;height:26px;margin:0 -14px;background:var(--ameixa);border-radius:0 0 10px 10px}
+.t-topo{display:flex;align-items:center;gap:.5rem;font-weight:800;font-size:1.15rem;padding:.2rem .3rem .7rem}
+.t-topo svg{width:34px;height:auto}
+.t-tela{background:var(--ameixa);border-radius:16px;padding:.9rem;min-height:250px;display:flex;flex-direction:column}
+.t-cab{display:flex;justify-content:space-between;gap:.5rem;font-size:.85rem;color:#EBC3D9;border-bottom:1px solid rgba(255,255,255,.15);padding-bottom:.55rem}
+.t-cab strong{color:#fff;font-size:.95rem;line-height:1.2}
+.t-hora{font-weight:800;color:var(--sol);font-size:1.15rem}
+#t-lista{list-style:none;padding:0;margin:.4rem 0 0;flex:1}
+#t-lista li{display:flex;justify-content:space-between;align-items:center;gap:.6rem;padding:.7rem 0;border-bottom:1px solid rgba(255,255,255,.1)}
+#t-lista small{display:block;color:#EBC3D9;font-size:.78rem}
+#t-lista .m{font-weight:800;font-size:1.35rem;color:var(--sol);white-space:nowrap}
+#t-lista li.ja .m{color:#7CF0A6}
+.t-live{margin-top:.5rem;font-size:.75rem;color:#EBC3D9;display:flex;align-items:center;gap:.4rem}
+.t-live i{width:8px;height:8px;border-radius:50%;background:#7CF0A6;display:inline-block}
+.t-faixa{margin:12px 0;background:var(--rosa-claro);color:var(--ameixa);border-radius:12px;padding:.55rem .7rem;font-weight:700;font-size:.88rem;line-height:1.3;text-align:center}
+.t-botoes{display:flex;gap:.6rem;align-items:center;padding-bottom:14px}
+.t-botoes .sos{flex:1;font:inherit;font-weight:800;border:0;border-radius:12px;padding:.65rem;cursor:pointer;background:var(--sol);color:var(--ameixa)}
+.t-botoes .sos:active{transform:scale(.97)}
+.t-botoes .qr{flex:none;width:54px;height:54px;background:#fff;border-radius:10px;padding:5px}
+#t-msg{min-height:1.4em;text-align:center;font-size:.88rem;color:var(--suave);margin-top:1rem}
+.t-pontos{list-style:none;padding:0;margin-top:1.2rem}
+.t-pontos li{padding:.5rem 0 .5rem 2rem;position:relative;border-bottom:1px solid var(--rosa-claro)}
+.t-pontos li::before{content:"";position:absolute;left:.3rem;top:.95rem;width:.8rem;height:.8rem;border-radius:50%;background:var(--rosa);box-shadow:0 0 0 4px var(--rosa-claro)}
+@media(prefers-reduced-motion:reduce){.pulse,.van-ic .anel{animation:none}html{scroll-behavior:auto}.btn{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="demo-bar"><b>Página de demonstração.</b> As vans, os horários e o mapa abaixo são simulados.</div>
+
+<div class="wrap">
+  <header class="top">
+    <a class="logo" href="#" aria-label="Move Elas — início">
+      <svg viewBox="0 0 64 40" aria-hidden="true"><rect x="2" y="6" width="50" height="24" rx="8" fill="#E4237A"/><path d="M40 6h6a8 8 0 0 1 7 4l7 12v8H40z" fill="#B5125C"/><rect x="9" y="11" width="12" height="9" rx="2" fill="#FFF3F8"/><rect x="25" y="11" width="12" height="9" rx="2" fill="#FFF3F8"/><circle cx="16" cy="32" r="5" fill="#3B0F2B"/><circle cx="46" cy="32" r="5" fill="#3B0F2B"/></svg>
+      Move Elas
+    </a>
+    <nav>
+      <a href="#como">Como funciona</a>
+      <a href="#totem">Totem</a>
+      <a href="#seguranca">Segurança</a>
+      <a href="#em-breve">Em breve</a>
+      <a class="btn-nav" href="#lista">Quero ser avisada</a>
+    </nav>
+  </header>
+
+  <main>
+  <div class="hero">
+    <div>
+      <h1>A van rosa que leva <em>elas</em> com tranquilidade.</h1>
+      <p class="lead">Transporte por van exclusivo para mulheres: passageiras, motoristas e atendimento. Você sabe quem está a bordo.</p>
+      <div class="cta">
+        <a class="btn" href="#lista">Entrar na lista de espera</a>
+        <a class="btn sec" href="#como">Ver como funciona</a>
+      </div>
+    </div>
+
+    <div class="mapa">
+      <span class="selo">Demonstração simulada</span>
+      <div id="mapa" role="img" aria-label="Mapa de Rio das Ostras e região com duas vans rosas simuladas, uma indo da patrulha de Barra de São João ao Parque de Tubos, em Macaé, e outra fazendo o caminho de volta"></div>
+      <div class="painel">
+        <div class="lin ida"><div class="eta"><span id="min1">--</span><small>min</small></div>
+          <p><strong id="st1">Van 03</strong><span id="det1"></span></p></div>
+        <div class="lin volta"><div class="eta"><span id="min2">--</span><small>min</small></div>
+          <p><strong id="st2">Van 07</strong><span id="det2"></span></p></div>
+        <small class="r" id="km"></small>
+      </div>
+    </div>
+  </div>
+
+  <section id="como" style="padding-top:2rem">
+    <h2>Pedir sua van é simples.</h2>
+    <p class="sub">É assim que vai funcionar quando o serviço estiver no ar.</p>
+    <ol class="passos">
+      <li><h3>Escolha seu ponto</h3><p>Informe onde você está e para onde vai. Mostramos os pontos de embarque mais próximos.</p></li>
+      <li><h3>Veja a van chegando</h3><p>Acompanhe no mapa, em tempo real, a van rosa se aproximando de você.</p></li>
+      <li><h3>Embarque com segurança</h3><p>Confira a placa e o nome da motorista, entre e siga viagem entre mulheres.</p></li>
+    </ol>
+  </section>
+  <section id="totem">
+    <div class="totem-grid">
+      <div>
+        <h2>Nos pontos, um totem mostra onde a van está.</h2>
+        <p class="sub">Em cada ponto de embarque haverá um totem Move Elas com a posição das vans ao vivo, para você saber quanto falta sem precisar de celular.</p>
+        <ul class="t-pontos">
+          <li><strong>Vans ao vivo:</strong> a próxima van, o sentido e os minutos que faltam.</li>
+          <li><strong>Só mulheres:</strong> as vans são exclusivas para passageiras e dirigidas apenas por motoristas mulheres.</li>
+          <li><strong>Botão de ajuda:</strong> um toque no totem avisa a central Move Elas.</li>
+          <li><strong>QR code:</strong> abre o acompanhamento da van no seu celular.</li>
+        </ul>
+        <p id="t-msg" role="status"></p>
+      </div>
+
+      <div class="totem-wrap">
+        <span class="selo">Simulação do totem</span>
+        <div class="pontos-tabs" role="group" aria-label="Escolha o ponto do totem">
+          <button type="button" data-ponto="0" aria-pressed="false">Barra de São João</button>
+          <button type="button" data-ponto="1" aria-pressed="true">Rio das Ostras</button>
+          <button type="button" data-ponto="2" aria-pressed="false">Parque de Tubos</button>
+        </div>
+        <div class="totem" role="group" aria-label="Simulação de um totem de ponto de van">
+          <div class="t-topo">
+            <svg viewBox="0 0 64 40" aria-hidden="true"><rect x="2" y="6" width="50" height="24" rx="8" fill="#FFF3F8"/><path d="M40 6h6a8 8 0 0 1 7 4l7 12v8H40z" fill="#FFD6E7"/><rect x="9" y="11" width="12" height="9" rx="2" fill="#E4237A"/><rect x="25" y="11" width="12" height="9" rx="2" fill="#E4237A"/><circle cx="16" cy="32" r="5" fill="#3B0F2B"/><circle cx="46" cy="32" r="5" fill="#3B0F2B"/></svg>
+            Move Elas
+          </div>
+          <div class="t-tela">
+            <div class="t-cab"><strong id="t-ponto">Rio das Ostras (centro)</strong><span class="t-hora" id="t-hora">--:--</span></div>
+            <ul id="t-lista"><li><span>Carregando vans…</span></li></ul>
+            <div class="t-live"><i></i>Posição das vans ao vivo (simulada)</div>
+          </div>
+          <div class="t-faixa">Vans só para mulheres.<br>Passageiras e motoristas.</div>
+          <div class="t-botoes">
+            <button class="sos" type="button" id="t-sos">Pedir ajuda</button>
+            <svg class="qr" viewBox="0 0 9 9" aria-label="QR code ilustrativo" role="img"><path fill="#3B0F2B" d="M0 0h3v3H0zM6 0h3v3H6zM0 6h3v3H0zM4 0h1v1H4zM4 2h1v2H3V3h1zM5 4h2v1H5zM7 4h2v1H7zM4 6h2v1H4zM6 6h1v3H6zM8 6h1v1H8zM8 8h1v1H8zM4 8h1v1H4z"/><path fill="#fff" d="M1 1h1v1H1zM7 1h1v1H7zM1 7h1v1H1z"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  </main>
+</div>
+
+<section id="seguranca" class="band">
+  <div class="wrap">
+    <h2>Feito para você chegar bem.</h2>
+    <p class="sub">Segurança não é um extra. É o motivo de o Move Elas existir.</p>
+    <div class="seg">
+      <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M17 5a3.5 3.5 0 0 1 0 6.5M18 14.2A6.5 6.5 0 0 1 21.5 20"/></svg><span><h3>Só mulheres a bordo</h3><p>Motoristas e passageiras são mulheres. Todas as cadastradas passam por verificação.</p></span></div>
+      <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span><h3>Localização em tempo real</h3><p>Veja onde a van está e compartilhe o trajeto com quem você quiser.</p></span></div>
+      <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.2 7.8-8 9-4.8-1.2-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg><span><h3>Motorista identificada</h3><p>Nome, foto e placa da van aparecem antes do embarque.</p></span></div>
+      <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg><span><h3>Botão de ajuda</h3><p>Um toque avisa nossa central e seus contatos de confiança.</p></span></div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <section id="em-breve">
+    <div class="breve">
+      <div>
+        <h2>O que já está no plano.</h2>
+        <p class="sub">Este site mostra a ideia. O aplicativo de verdade vem por etapas.</p>
+        <ul class="lista">
+          <li class="ok">Identidade e conceito do Move Elas<span>Pronto</span></li>
+          <li>Mapa com as vans ao vivo<span>Em breve: o mapa acima é só uma simulação</span></li>
+          <li>Pedido de van pelo celular<span>Em breve</span></li>
+          <li>Compartilhar trajeto com contatos de confiança<span>Em breve</span></li>
+        </ul>
+      </div>
+
+      <form id="lista" onsubmit="return enviar(event)">
+        <h3>Quero ser avisada</h3>
+        <p class="n">Deixe seus dados para saber quando o Move Elas chegar.</p>
+        <label for="nome">Seu nome</label>
+        <input id="nome" name="nome" autocomplete="given-name" required>
+        <label for="email">Seu e-mail</label>
+        <input id="email" name="email" type="email" autocomplete="email" required>
+        <button class="btn" type="submit">Entrar na lista de espera</button>
+        <p id="ok" role="status">Obrigada! Esta é uma página de demonstração: nenhum dado foi enviado ou guardado.</p>
+      </form>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap">© 2026 Move Elas · Projeto em desenvolvimento · Site de demonstração</div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function(){
+  // Coordenadas aproximadas: ajuste aqui se quiser os pontos exatos.
+  var ORIGEM  = {nome:'Patrulha de Barra de São João', ll:[-22.5880,-41.9935]};
+  var PARADA  = {nome:'Rio das Ostras (centro)',        ll:[-22.5269,-41.9456]};
+  var DESTINO = {nome:'Parque de Tubos, Macaé',         ll:[-22.2935,-41.7255]};
+  // Rota de reserva caso o serviço de rotas esteja fora do ar
+  var RESERVA = [ORIGEM.ll,[-22.5600,-41.9700],PARADA.ll,[-22.4700,-41.8800],[-22.4000,-41.8000],[-22.3400,-41.7600],DESTINO.ll];
+
+  var map=L.map('mapa',{scrollWheelZoom:false,zoomControl:true});
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(map);
+
+  function pino(p,cls,txt){
+    L.marker(p.ll,{icon:L.divIcon({className:'',html:'<div class="pino '+cls+'"><i></i></div>',iconSize:[30,30],iconAnchor:[8,30]}),title:p.nome,keyboard:false})
+     .addTo(map).bindTooltip(txt,{direction:'top',offset:[8,-30]});
+  }
+  pino(ORIGEM,'','Ponto: '+ORIGEM.nome);
+  pino(PARADA,'sol','Parada: '+PARADA.nome);
+  pino(DESTINO,'','Ponto: '+DESTINO.nome);
+
+  function vanIcon(corpo,cab){
+    return L.divIcon({className:'van-ic',iconSize:[40,26],iconAnchor:[20,13],html:'<div class="anel" style="background:'+corpo+'"></div><svg viewBox="0 0 64 40" width="40" height="26" style="position:relative"><rect x="2" y="6" width="50" height="24" rx="8" fill="'+corpo+'" stroke="#fff" stroke-width="3"/><path d="M40 6h6a8 8 0 0 1 7 4l7 12v8H40z" fill="'+cab+'" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><rect x="9" y="11" width="12" height="9" rx="2" fill="#FFF3F8"/><rect x="25" y="11" width="12" height="9" rx="2" fill="#FFF3F8"/><circle cx="16" cy="32" r="5" fill="#3B0F2B"/><circle cx="46" cy="32" r="5" fill="#3B0F2B"/></svg>'});
+  }
+
+  // dir 1 = Barra de São João → Macaé | dir -1 = Macaé → Barra de São João
+  var vans=[
+    {id:'03', dir:1,  fase:0,   corpo:'#E4237A', cab:'#B5125C', min:'min1', st:'st1', det:'det1'},
+    {id:'07', dir:-1, fase:.45, corpo:'#C2185B', cab:'#8E0F43', min:'min2', st:'st2', det:'det2'}
+  ];
+  vans.forEach(function(v){
+    v.marker=L.marker(ORIGEM.ll,{icon:vanIcon(v.corpo,v.cab),zIndexOffset:1000,keyboard:false,title:'Van '+v.id}).addTo(map);
+    v.marker.bindTooltip('Van '+v.id,{direction:'top',offset:[0,-14]});
+    v.elMin=document.getElementById(v.min); v.elSt=document.getElementById(v.st); v.elDet=document.getElementById(v.det);
+  });
+  var kmEl=document.getElementById('km');
+  var reduz=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var pts=[], acum=[], total=0, duracaoMin=45, paradaAt=0;
+
+  function prepara(lat_lngs,dur){
+    pts=lat_lngs.map(function(p){return L.latLng(p[0],p[1])});
+    acum=[0];
+    for(var i=1;i<pts.length;i++) acum.push(acum[i-1]+pts[i-1].distanceTo(pts[i]));
+    total=acum[acum.length-1];
+    duracaoMin=Math.max(10,Math.round(dur||total/1000/55*60));
+    var melhor=1e12; pts.forEach(function(p,i){var d=p.distanceTo(L.latLng(PARADA.ll)); if(d<melhor){melhor=d;paradaAt=acum[i];}});
+    L.polyline(pts,{color:'#E4237A',weight:6,opacity:.9,dashArray:'1 11',lineCap:'round'}).addTo(map);
+    map.fitBounds(L.latLngBounds(pts),{paddingTopLeft:[24,50],paddingBottomRight:[24,170]});
+    kmEl.textContent='Trajeto de ~'+(total/1000).toFixed(0)+' km nos dois sentidos (simulado)';
+    inicia();
+  }
+  function ponto(d){
+    var i=1; while(i<acum.length-1 && acum[i]<d) i++;
+    var t=(d-acum[i-1])/((acum[i]-acum[i-1])||1);
+    return L.latLng(pts[i-1].lat+(pts[i].lat-pts[i-1].lat)*t, pts[i-1].lng+(pts[i].lng-pts[i-1].lng)*t);
+  }
+  function mostra(v,p){
+    v.p=p;
+    var d=v.dir===1 ? p*total : (1-p)*total;       // distância medida a partir da Barra de São João
+    v.marker.setLatLng(ponto(d));
+    v.elMin.textContent=Math.max(0,Math.ceil((1-p)*duracaoMin));
+    var pert=Math.abs(d-paradaAt)<total*.02, passou=v.dir===1 ? d>paradaAt : d<paradaAt;
+    var rotulo='Van '+v.id+' · '+(v.dir===1?'Barra de São João → Macaé':'Macaé → Barra de São João');
+    v.elSt.textContent=rotulo;
+    if(pert) v.elDet.textContent='Parada em Rio das Ostras: embarque de passageiras';
+    else if(!passou) v.elDet.textContent=v.dir===1?'A caminho de Rio das Ostras':'Saiu do Parque de Tubos, rumo a Rio das Ostras';
+    else v.elDet.textContent=v.dir===1?'Seguindo para o Parque de Tubos':'Seguindo para Barra de São João';
+  }
+  function inicia(){
+    if(reduz){ vans.forEach(function(v){mostra(v,.3+v.fase*.4)}); totemRender(); return; }
+    var ult=0, t0=0, ultTotem=-9999, duracaoAnim=70; // segundos por volta na demonstração
+    function loop(t){
+      if(!t0) t0=t;
+      var base=((t-t0)/1000)/duracaoAnim;
+      vans.forEach(function(v){ mostra(v,(base+v.fase)%1); });
+      if(t-ultTotem>1000){ ultTotem=t; totemRender(); }
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  }
+
+
+  // ---- Totem do ponto: usa as mesmas vans simuladas do mapa ----
+  var paradas=[
+    {nome:'Patrulha de Barra de São João', s:function(){return 0}},
+    {nome:'Rio das Ostras (centro)',       s:function(){return paradaAt}},
+    {nome:'Parque de Tubos, Macaé',        s:function(){return total}}
+  ];
+  var sel=1, tabs=document.querySelectorAll('[data-ponto]');
+  var tPonto=document.getElementById('t-ponto'), tHora=document.getElementById('t-hora'), tLista=document.getElementById('t-lista');
+  function etaVan(v,s){
+    var d=v.dir===1 ? v.p*total : (1-v.p)*total;
+    var dist=v.dir===1 ? s-d : d-s;
+    if(dist<0) dist+=total;
+    return dist/total*duracaoMin;
+  }
+  function totemRender(){
+    if(!total) return;
+    var s=paradas[sel].s();
+    tPonto.textContent=paradas[sel].nome;
+    tHora.textContent=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    var linhas=vans.map(function(v){return {v:v,m:etaVan(v,s)}}).sort(function(a,b){return a.m-b.m});
+    tLista.innerHTML=linhas.map(function(l){
+      var m=l.m, txt=m<1?'Chegando':Math.round(m)+' min';
+      return '<li class="'+(m<1?'ja':'')+'"><span><b>Van '+l.v.id+'</b><small>sentido '+(l.v.dir===1?'Macaé':'Barra de São João')+'</small></span><span class="m">'+txt+'</span></li>';
+    }).join('');
+  }
+  Array.prototype.forEach.call(tabs,function(b){
+    b.addEventListener('click',function(){
+      sel=+b.getAttribute('data-ponto');
+      Array.prototype.forEach.call(tabs,function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});
+      totemRender();
+    });
+  });
+  document.getElementById('t-sos').addEventListener('click',function(){
+    document.getElementById('t-msg').textContent='Demonstração: no totem de verdade, este botão avisa a central Move Elas. Nada foi enviado.';
+  });
+
+  // Tenta buscar a rota real pelas estradas (OSRM público); se falhar, usa a rota de reserva.
+  var url='https://router.project-osrm.org/route/v1/driving/'+[ORIGEM,PARADA,DESTINO].map(function(p){return p.ll[1]+','+p.ll[0]}).join(';')+'?overview=full&geometries=geojson';
+  var feito=false;
+  function usaReserva(){ if(!feito){feito=true; prepara(RESERVA);} }
+  var timer=setTimeout(usaReserva,6000);
+  fetch(url).then(function(r){return r.json()}).then(function(j){
+    if(feito) return;
+    var rt=j.routes&&j.routes[0];
+    if(!rt) return usaReserva();
+    feito=true; clearTimeout(timer);
+    prepara(rt.geometry.coordinates.map(function(c){return [c[1],c[0]]}), rt.duration/60);
+  }).catch(usaReserva);
+})();
+
+function enviar(e){
+  e.preventDefault();
+  document.getElementById('ok').style.display='block';
+  e.target.reset();
+  return false;
+}
+</script>
+</body>
+</html>
